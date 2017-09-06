@@ -1,19 +1,18 @@
 -- Enums for terms.
 data Accidental = Natural | Flat | Sharp deriving (Eq, Enum)
 data NoteName = A | B | C | D | E | F | G deriving (Show, Eq, Enum)
-data ScaleType = Major | Minor | Blues deriving (Show, Eq, Enum) 
 -- Holds a note and an accidental.
 data Note = Note NoteName Accidental deriving (Eq)
 -- Defines a scale.
-data ScaleName = ScaleName Note ScaleType deriving (Eq)
+data ScaleName = ScaleName Note [Int] deriving (Eq)
 
 -- Scales are defined by intervals from the root note.
-majorScale :: [Int]
-majorScale = [0, 2, 4, 5, 7, 9, 11, 12]
-minorScale :: [Int]
-minorScale = [0, 2, 3, 5, 7, 8, 10, 12]
-bluesScale :: [Int]
-bluesScale = [0, 3, 5, 6, 7, 10, 12]
+major:: [Int]
+major= [0, 2, 4, 5, 7, 9, 11, 12]
+minor:: [Int]
+minor= [0, 2, 3, 5, 7, 8, 10, 12]
+blues:: [Int]
+blues= [0, 3, 5, 6, 7, 10, 12]
 
 -- For now, explicitly state naturals.
 instance Show Accidental where 
@@ -63,16 +62,16 @@ lowerBy n name = (iterate lower name) !! n
 -- TODO: This is getting bloated. Needs refactoring.
 generateScale :: ScaleName -> [Note]
 -- Major scales have all sharps or naturals, except F and the flats.
-generateScale (ScaleName (Note F Natural) Major) = convertScale Flat (scale majorScale (Note F Natural))
-generateScale (ScaleName (Note name Flat) Major) = convertScale Flat (scale majorScale (Note name Flat))
-generateScale (ScaleName note Major) = scale majorScale note
+generateScale (ScaleName (Note F Natural) major) = convertScale Flat (scale major (Note F Natural))
+generateScale (ScaleName (Note name Flat) major) = convertScale Flat (scale major (Note name Flat))
+generateScale (ScaleName root Major) = scale majorScale root
 -- Minor scales have  all flats or naturals, except E, B, and the Sharps.
-generateScale (ScaleName (Note E Natural) Minor) = scale minorScale (Note E Natural)
-generateScale (ScaleName (Note B Natural) Minor) = scale minorScale (Note B Natural)
-generateScale (ScaleName (Note name Sharp) Minor) = scale minorScale (Note name Sharp)
-generateScale (ScaleName note Minor) = convertScale Flat (scale minorScale note)
--- Blues scales are just sharps I guess.
-generateScale (ScaleName note Blues) = scale bluesScale note
+generateScale (ScaleName (Note E Natural) minor) = scale minor (Note E Natural)
+generateScale (ScaleName (Note B Natural) minor) = scale minor (Note B Natural)
+generateScale (ScaleName (Note name Sharp) minor) = scale minor (Note name Sharp)
+generateScale (ScaleName root Minor) = convertScale Flat (scale minor root)
+-- Any other scales will just be assumed sharp. 
+generateScale (ScaleName root scaleType) = scale scaleType root
 
 -- Generates a scale based on a set of intervals.
 -- The generated scale will always be in terms of sharps. 
