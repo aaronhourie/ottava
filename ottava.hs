@@ -7,11 +7,11 @@ data Note = Note NoteName Accidental deriving (Eq)
 data ScaleName = ScaleName Note [Int] deriving (Eq)
 
 -- Scales are defined by intervals from the root note.
-major:: [Int]
+major :: [Int]
 major= [0, 2, 4, 5, 7, 9, 11, 12]
-minor:: [Int]
+minor :: [Int]
 minor= [0, 2, 3, 5, 7, 8, 10, 12]
-blues:: [Int]
+blues :: [Int]
 blues= [0, 3, 5, 6, 7, 10, 12]
 
 -- For now, explicitly state naturals.
@@ -52,8 +52,8 @@ lower (Note A Flat) = Note G Natural
 lower (Note name Sharp) = Note name Natural
 lower (Note name Natural) = Note name Flat
 lower (Note name Flat) = Note (pred name) Natural
+
 -- Lower a note by n semitones.
---
 lowerBy :: Int -> Note -> Note
 lowerBy n name = (iterate lower name) !! n
 
@@ -77,6 +77,7 @@ generateScale (ScaleName root scaleType) = scale scaleType root
 -- The generated scale will always be in terms of sharps. 
 scale :: [Int] -> Note -> [Note]
 scale intervals note = map (\amount -> raiseBy amount note) intervals
+
 
 -- Converts a note to its equivalent accidental.
 convertNote :: Accidental -> Note -> Note
