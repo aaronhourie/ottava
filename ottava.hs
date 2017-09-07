@@ -1,12 +1,13 @@
 -- Enums for terms.
-data Accidental = Natural | Flat | Sharp deriving (Eq, Enum)
-data NoteName = A | B | C | D | E | F | G deriving (Show, Eq, Enum)
+data Accidental = Flat | Natural | Sharp deriving (Eq, Enum, Ord)
+data NoteName = A | B | C | D | E | F | G deriving (Show, Eq, Enum, Ord)
+data ScaleType = Major | Minor | Blues deriving (Show, Eq)
 -- Holds a note and an accidental.
 data Note = Note NoteName Accidental deriving (Eq)
 -- Holds a note and an octave. 
-data Tone = Tone Note Int deriving (Eq)
+data Tone = Tone Note Int
 -- Defines a scale.
-data ScaleName = ScaleName Tone [Int] deriving (Eq)
+data ScaleName = ScaleName Tone ScaleType deriving (Eq)
 
 -- Scales are defined by intervals from the root note.
 -- TODO: These are causing some warnings. Need a better way to define them.
@@ -29,6 +30,18 @@ instance Show Note where
 
 instance Show Tone where
     show (Tone note octave) = show note ++ show octave
+
+instance Ord Tone where 
+    compare (Tone (Note nameA accA) octaveA) (Tone (Note nameB accB) octaveB) 
+        | octaveA /= octaveB = compare octaveA octaveB
+        | accA /= accB = compare (Tone (Note nameA accA) octaveA) (convertTone accA (Tone (Note nameB accB) octaveB))
+        | otherwise = compare nameA nameB 
+
+instance Eq Tone where
+    (Tone (Note nameA accA) octaveA) == (Tone (Note nameB accB) octaveB)
+        | octaveA /= octaveB = octaveA == octaveB
+        | accA /= accB = (Tone (Note nameA accA) octaveA) == (convertTone accA (Tone (Note nameB accB) octaveB))
+        | otherwise = nameA == nameB 
 
 
 -- Raises a note by a semitone. 
@@ -65,24 +78,24 @@ lowerBy n tone = (iterate lower tone) !! n
 
 
 -- Builds a scale based on a scale name.
--- TODO: This is getting bloated. Needs refactoring.
 generateScale :: ScaleName -> [Tone]
 -- Major scales have all sharps or naturals, except F and the flats.
-generateScale (ScaleName (Tone (Note F Natural) octave) major) = 
+generateScale (ScaleName (Tone (Note F Natural) octave) Major) = 
     convertScale Flat (scale major (Tone (Note F Natural) octave))
-generateScale (ScaleName (Tone (Note name Flat) octave)  major) =
+generateScale (ScaleName (Tone (Note name Flat) octave)  Major) =
     convertScale Flat (scale major (Tone (Note name Flat) octave))
-generateScale (ScaleName root major) = scale major root
+generateScale (ScaleName root Major) = scale major root
 -- Minor scales have  all flats or naturals, except E, B, and the Sharps.
-generateScale (ScaleName (Tone (Note E Natural) octave) minor) =
+generateScale (ScaleName (Tone (Note E Natural) octave) Minor) =
     scale minor (Tone (Note E Natural) octave)
-generateScale (ScaleName (Tone (Note B Natural) octave)  minor) =
+generateScale (ScaleName (Tone (Note B Natural) octave)  Minor) =
     scale minor (Tone (Note B Natural) octave)
-generateScale (ScaleName (Tone (Note name Sharp) octave) minor) =
+generateScale (ScaleName (Tone (Note name Sharp) octave) Minor) =
     scale minor (Tone (Note name Sharp) octave)
-generateScale (ScaleName root minor) = convertScale Flat (scale minor root)
--- Any other scales will just be assumed sharp. 
-generateScale (ScaleName root intervals) = scale intervals root
+generateScale (ScaleName root Minor) = convertScale Flat (scale minor root)
+-- Blues scales will just be assumed sharp. 
+generateScale (ScaleName root Blues) = scale blues root
+    
 
 -- Generates a scale based on a set of intervals.
 -- The generated scale will always be in terms of sharps. 
@@ -90,22 +103,22 @@ scale :: [Int] -> Tone -> [Tone]
 scale intervals tone = map (\amount -> raiseBy amount tone) intervals
 
 -- Converts a note to its equivalent accidental.
-convertNote :: Accidental -> Tone -> Tone 
-convertNote Sharp (Tone (Note name Flat) octave) =
+convertTone :: Accidental -> Tone -> Tone 
+convertTone Sharp (Tone (Note name Flat) octave) =
     raise (lower (Tone (Note name Flat) octave))
-convertNote Flat (Tone (Note name Sharp) octave) = 
+convertTone Flat (Tone (Note name Sharp) octave) = 
     lower (raise (Tone (Note name Sharp) octave))
-convertNote Sharp (Tone (Note name Sharp) octave) =
+convertTone Sharp (Tone (Note name Sharp) octave) =
     Tone (Note name Sharp) octave
-convertNote Flat (Tone (Note name Flat) octave) =
+convertTone Flat (Tone (Note name Flat) octave) =
     Tone (Note name Flat) octave
-convertNote _ (Tone (Note name Natural) octave) = 
+convertTone _ (Tone (Note name Natural) octave) = 
     Tone (Note name Natural) octave
 -- no double sharps yet, so the note remains the same.
-convertNote Natural tone = tone
+convertTone Natural tone = tone
 
 -- Converts a whole scale into an accidental. 
 convertScale :: Accidental -> [Tone] -> [Tone]
 convertScale _ [] = []
-convertScale acc (head:tail) = convertNote acc head : convertScale acc tail
+convertScale acc (head:tail) = convertTone acc head : convertScale acc tail
 
